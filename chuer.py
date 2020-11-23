@@ -77,7 +77,7 @@ def classify_with_class(excel_path, dele=True):
             chafenlvs[col_name] = len(df[df[col_name] < subjects_manfen[col_name] * 0.4]) / (len(df[col_name]))
 
     class_info_dict = collections.OrderedDict()
-    writer = pd.ExcelWriter("tmp.xls", engine="openpyxl")
+    writer = pd.ExcelWriter("result.xls", engine="openpyxl")
     df[calculation_mean] = df[calculation_mean].astype(float)
     tmp = df.groupby('班级')[calculation_mean].mean()
     df.sort_values(by='总分', axis=0, ascending=False, inplace=True, na_position='last')
@@ -124,7 +124,12 @@ def classify_with_class(excel_path, dele=True):
 def write_to_another_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs):
     import datetime
     teachers = read_teacher_name()
-    workbook = xlwt.Workbook()
+    # workbook = xlwt.Workbook()
+    from xlutils.copy import copy
+
+    data = xlrd.open_workbook("result.xls")
+
+    workbook = copy(wb=data)  # 完成xlrd对象向xlwt对象转换
     sheet = workbook.add_sheet("数据分析表")
     cols = ["教师", "排名", "均分", "合格率", "优分率", "差分率", "前160", "后160"]
 
@@ -167,7 +172,7 @@ def write_to_another_excel(class_info_dict, averages, hegelvs, chafenlvs, youfen
     first_colmns = ['政 治 (60)', '历 史 (60)', '总 分 (520)']
     block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
                        youfenlvs, teachers, class_prefix="八")
-    workbook.save("tt.xls")
+    workbook.save("result.xls")
 
 
 def block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
