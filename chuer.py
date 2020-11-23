@@ -160,8 +160,6 @@ def write_to_another_excel(class_info_dict, averages, hegelvs, chafenlvs, youfen
     sheet.write_merge(0, 0, 0, len(blocks) * len(cols) + 1, title, class_style)  # Merges row 0's columns 0 through 3
     begin_row = 2
 
-    blocks = ['语文', '数学', '英语', '物理']
-    first_colmns = ['语 文 (100)', '数 学 (100)', '英 语 (100)', '物 理 (100)']
     block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
                        youfenlvs, teachers, class_prefix="八")
     begin_row = begin_row + len(class_info_dict) + 3
