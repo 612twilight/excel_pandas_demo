@@ -5,12 +5,12 @@ import pandas as pd
 import collections
 from config import class_replace
 import xlwt
+import datetime
+from xlutils.copy import copy
 
-only_subjects = ['语文', '数学', '英语', '物理', '政治', '历史']
-subjects = ['语文', '数学', '英语', '物理', '政治', '历史', '总分']
-subjects_manfen = {'语文': 100, '数学': 100, '英语': 100, '物理': 100, '政治': 60, '历史': 60, '总分': 520}
-write_cols = ["姓名", "班级", "语文", "数学", "英语", "物理", "政治", "历史", "总分", "名次"]
-calculation_mean = ['语文', '数学', '英语', '物理', '政治', '历史', "总分"]
+all_subjects = ['语文', '数学', '英语', '物理', '化学', '政治', '历史', '地理', '生物']
+subjects_manfen = {'语文': 100, '数学': 100, '英语': 100, '物理': 100, '化学': 80, '政治': 60, '历史': 60, '地理': 50, '生物': 50}
+write_cols_order = ["姓名", "班级", "语文", "数学", "英语", "物理", '化学', "政治", "历史", '地理', '生物', "总分", "名次"]
 
 
 def find_the_excel(dir_name="初二成绩"):
@@ -37,49 +37,61 @@ def read_teacher_name(dir_name="初二成绩"):
         return None
 
 
-def classify_with_class(excel_path, dele=True):
+def classify_with_class(excel_path, result_file="result.xls", dele=True):
     # workshop = xlrd.open_workbook(excel_path)
     # sheet1 = workshop.sheet_by_name("Sheet1")
     # print([i.value for i in sheet1.row(0)])
     df = pd.read_excel(excel_path, sheet_name="Sheet1", header=0)
-    df["班级"].replace(class_replace, inplace=True)
+    # df[["班级"]].replace(class_replace, inplace=True)
+    df[["班级"]] = df[["班级"]].applymap(lambda x: class_replace[x] if x in class_replace else x)
     origin_len = len(df)
+    columns = df.columns.values
+    only_subjects = list(set(columns) & set(all_subjects))
+    subjects = only_subjects + ["总分"]
+
+    write_cols = list(sorted(set(columns) & set(write_cols_order), key=lambda x: write_cols_order.index(x)))
+
     tmp = df[only_subjects]
-    # tmp.iloc[tmp == "缺考"] = 0
+    # tmp.replace({"缺考": 0}, inplace=True)
+    quekao = {"缺考": 0}
+    tmp = tmp.applymap(lambda x: quekao[x] if x in quekao else x)
     df["总分"] = tmp.apply(lambda x: x.sum(), axis=1)
     df.sort_values(by='总分', axis=0, ascending=False, inplace=True, na_position='last')
     df["名次"] = range(1, len(df) + 1)
 
-    # for col_name in df:
-    #     if col_name in subjects:
-    #         if dele:
-    #             df.drop(df[df[col_name] == "缺考"].index, inplace=True)
-    #         else:
-    #             df[col_name] = df[col_name].map(lambda x: 0 if x == "缺考" else x)
+    for col_name in df:
+        if col_name in subjects:
+            if dele:
+                df.drop(df[df[col_name] == "缺考"].index, inplace=True)
+            else:
+                df[col_name] = df[col_name].map(lambda x: 0 if x == "缺考" else x)
 
     filter_len = len(df)
     print("应考人数：{}".format(origin_len))
     print("实考人数：{}".format(filter_len))
     print("缺考人数：{}".format(origin_len - filter_len))
 
-    bak = df[calculation_mean].mean()
+    bak = df[subjects].mean()
 
     averages = dict()
     jigelvs = dict()
     youfenlvs = dict()
     chafenlvs = dict()
+    zongfen = sum(subjects_manfen[i] for i in only_subjects)
+    subjects_manfen_tmp = subjects_manfen.copy()
+    subjects_manfen_tmp.update({"总分": zongfen})
     for col_name in df:
         if col_name in subjects:
             averages[col_name] = bak.loc[col_name]
-            jigelvs[col_name] = len(df[df[col_name] >= subjects_manfen[col_name] * 0.6]) / (
+            jigelvs[col_name] = len(df[df[col_name] >= subjects_manfen_tmp[col_name] * 0.6]) / (
                 len(df[col_name]))  # 减去均分那一行
-            youfenlvs[col_name] = len(df[df[col_name] >= subjects_manfen[col_name] * 0.8]) / (len(df[col_name]))
-            chafenlvs[col_name] = len(df[df[col_name] < subjects_manfen[col_name] * 0.4]) / (len(df[col_name]))
+            youfenlvs[col_name] = len(df[df[col_name] >= subjects_manfen_tmp[col_name] * 0.8]) / (len(df[col_name]))
+            chafenlvs[col_name] = len(df[df[col_name] < subjects_manfen_tmp[col_name] * 0.4]) / (len(df[col_name]))
 
     class_info_dict = collections.OrderedDict()
-    writer = pd.ExcelWriter("result.xls", engine="openpyxl")
-    df[calculation_mean] = df[calculation_mean].astype(float)
-    tmp = df.groupby('班级')[calculation_mean].mean()
+    writer = pd.ExcelWriter(result_file, engine="openpyxl")
+    df[subjects] = df[subjects].astype(float)
+    tmp = df.groupby('班级')[subjects].mean()
     df.sort_values(by='总分', axis=0, ascending=False, inplace=True, na_position='last')
     sorted_average = dict()
     qian_yibailiu_fens = dict()
@@ -89,50 +101,94 @@ def classify_with_class(excel_path, dele=True):
         tt = df.sort_values(by=col_name, axis=0, ascending=False, inplace=False, na_position='last')
         qian_yibailiu_fens[col_name] = dict(tt.iloc[:160].groupby("班级").count()[col_name])
         hou_yibailiu_fens[col_name] = dict(tt.iloc[-160:].groupby("班级").count()[col_name])
-    print(qian_yibailiu_fens)
     for _, class_df in df.groupby(df['班级']):
         class_subjects = dict()
         isinstance(class_df, pd.DataFrame)
-        bak_tmp = class_df[calculation_mean].mean()
-        # print(class_df.tail)
-
+        bak_tmp = class_df[subjects].mean()
         for col_name in subjects:
-            # ss = sorted(list(zip(tmp.index, tmp[col_name])), key=lambda x: x[1], reverse=True)
-            if col_name == "政治" and _ == "十六班":
-                print(len(class_df[class_df[col_name] >= subjects_manfen[col_name] * 0.6]))
-            jigelv = len(class_df[class_df[col_name] >= subjects_manfen[col_name] * 0.6]) / (
+            jigelv = len(class_df[class_df[col_name] >= subjects_manfen_tmp[col_name] * 0.6]) / (
                 len(class_df[col_name]))
-            youfenlv = len(class_df[class_df[col_name] >= subjects_manfen[col_name] * 0.8]) / (
+            youfenlv = len(class_df[class_df[col_name] >= subjects_manfen_tmp[col_name] * 0.8]) / (
                 len(class_df[col_name]))
-            chafenlv = len(class_df[class_df[col_name] < subjects_manfen[col_name] * 0.4]) / (
+            chafenlv = len(class_df[class_df[col_name] < subjects_manfen_tmp[col_name] * 0.4]) / (
                 len(class_df[col_name]))
             junfen = bak_tmp.loc[col_name]
             subject = {"均分": junfen, "差分率": chafenlv, "合格率": jigelv, "优分率": youfenlv,
                        '排名': sorted_average[col_name].index((_, tmp.loc[_, col_name])) + 1, "班级": _,
                        "前160": qian_yibailiu_fens[col_name][_],
-                       "后160": hou_yibailiu_fens[col_name][_]}
+                       "后160": hou_yibailiu_fens[col_name][_]
+                       }
             class_subjects[col_name] = subject
-            class_info_dict[_] = (class_subjects, len(class_df))
-            write_class_df = class_df[write_cols].copy()
-            write_class_df.to_excel(writer, encoding='utf-8', sheet_name='{}班'.format(_), index=None)
-            writer.save()
-            writer.close()
-            # print(df)
+        class_info_dict[_] = (class_subjects, len(class_df))
+        for i in ["优分率", "合格率", "差分率", "均分"]:
+            tmp_ = {"姓名": i}
+            for co in subjects:
+                tmp_[co] = class_subjects[co][i]
+            s = pd.DataFrame(tmp_, index=[len(class_df) + 1])
+            class_df = class_df.append(s)
+        write_class_df = class_df[write_cols]
+        write_class_df.to_excel(writer, encoding='utf-8', sheet_name='{}班'.format(_), index=None)
+        writer.save()
+        writer.close()
     return class_info_dict, averages, jigelvs, chafenlvs, youfenlvs
 
 
-def write_to_another_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs):
-    import datetime
-    teachers = read_teacher_name()
-    # workbook = xlwt.Workbook()
-    from xlutils.copy import copy
-
-    data = xlrd.open_workbook("result.xls")
-
+def write_to_grade_one_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file="result.xls",
+                             dir_name="初二成绩"):
+    teachers = read_teacher_name(dir_name)
+    data = xlrd.open_workbook(result_file)
     workbook = copy(wb=data)  # 完成xlrd对象向xlwt对象转换
     sheet = workbook.add_sheet("数据分析表")
     cols = ["教师", "排名", "均分", "合格率", "优分率", "差分率", "前160", "后160"]
+    borders = xlwt.Borders()
+    borders.left = 1
+    borders.right = 1
+    borders.top = 1
+    borders.bottom = 1
+    borders.bottom_colour = 0x3A
 
+    juzhongstyle = xlwt.Alignment()
+    juzhongstyle.horz = 0x02  # 设置水平居中
+    juzhongstyle.vert = 0x01  # 设置垂直居中
+
+    front_class_title = xlwt.Font()
+    front_class_title.name = "微软雅黑"
+    front_class_title.bold = True
+    front_class_title.height = 20 * 15
+
+    class_style = xlwt.XFStyle()  # 创建一个样式对象，初始化样式
+    class_style.alignment = juzhongstyle
+    class_style.font = front_class_title
+    class_style.borders = borders
+
+    year = datetime.datetime.now().year
+    month = datetime.datetime.now().month
+    day = datetime.datetime.now().day
+    xueqi = "一" if month <= 9 else "二"
+    title = "{}-{}学年度第{}学期初一年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
+
+    blocks = ['语文', '数学', '英语', '政治']
+    first_colmns = ['语 文 (100)', '数 学 (100)', '英 语 (100)', '政 治 (60)']
+    sheet.write_merge(0, 0, 0, len(blocks) * len(cols) + 1, title, class_style)  # Merges row 0's columns 0 through 3
+    begin_row = 2
+
+    block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
+                       youfenlvs, teachers, class_prefix="七")
+    begin_row = begin_row + len(class_info_dict) + 3
+    blocks = ['历史', '地理', '地理', '生物', '总分']
+    first_colmns = ['历 史 (60)', '地 理 (50)', '生 物 (50)', '总 分 (520)']
+    block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
+                       youfenlvs, teachers, class_prefix="八")
+    workbook.save(result_file)
+
+
+def write_to_grade_two_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file="result.xls",
+                             dir_name="初二成绩"):
+    teachers = read_teacher_name(dir_name)
+    data = xlrd.open_workbook(result_file)
+    workbook = copy(wb=data)  # 完成xlrd对象向xlwt对象转换
+    sheet = workbook.add_sheet("数据分析表")
+    cols = ["教师", "排名", "均分", "合格率", "优分率", "差分率", "前160", "后160"]
     borders = xlwt.Borders()
     borders.left = 1
     borders.right = 1
@@ -172,7 +228,56 @@ def write_to_another_excel(class_info_dict, averages, hegelvs, chafenlvs, youfen
     first_colmns = ['政 治 (60)', '历 史 (60)', '总 分 (520)']
     block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
                        youfenlvs, teachers, class_prefix="八")
-    workbook.save("result.xls")
+    workbook.save(result_file)
+
+
+def write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file="result.xls",
+                               dir_name="初二成绩"):
+    teachers = read_teacher_name(dir_name)
+    data = xlrd.open_workbook(result_file)
+    workbook = copy(wb=data)  # 完成xlrd对象向xlwt对象转换
+    sheet = workbook.add_sheet("数据分析表")
+    cols = ["教师", "排名", "均分", "合格率", "优分率", "差分率", "前160", "后160"]
+    borders = xlwt.Borders()
+    borders.left = 1
+    borders.right = 1
+    borders.top = 1
+    borders.bottom = 1
+    borders.bottom_colour = 0x3A
+
+    juzhongstyle = xlwt.Alignment()
+    juzhongstyle.horz = 0x02  # 设置水平居中
+    juzhongstyle.vert = 0x01  # 设置垂直居中
+
+    front_class_title = xlwt.Font()
+    front_class_title.name = "微软雅黑"
+    front_class_title.bold = True
+    front_class_title.height = 20 * 15
+
+    class_style = xlwt.XFStyle()  # 创建一个样式对象，初始化样式
+    class_style.alignment = juzhongstyle
+    class_style.font = front_class_title
+    class_style.borders = borders
+
+    year = datetime.datetime.now().year
+    month = datetime.datetime.now().month
+    day = datetime.datetime.now().day
+    xueqi = "一" if month <= 9 else "二"
+    title = "{}-{}学年度第{}学期初三年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
+
+    blocks = ['语文', '数学', '英语', '物理']
+    first_colmns = ['语 文 (100)', '数 学 (100)', '英 语 (100)', '物 理 (100)']
+    sheet.write_merge(0, 0, 0, len(blocks) * len(cols) + 1, title, class_style)  # Merges row 0's columns 0 through 3
+    begin_row = 2
+
+    block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
+                       youfenlvs, teachers, class_prefix="八")
+    begin_row = begin_row + len(class_info_dict) + 3
+    blocks = ['化学', '政治', '历史', '总分']
+    first_colmns = ['化 学 (80)', '政 治 (60)', '历 史 (60)', '总 分 (600)']
+    block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
+                       youfenlvs, teachers, class_prefix="九")
+    workbook.save(result_file)
 
 
 def block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
@@ -267,9 +372,45 @@ def block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_
                 sheet.write(junfen_row, col_num, float(youfenlvs[block]), baifenbi_style)
 
 
-if __name__ == '__main__':
-    excel_path = find_the_excel()
+def handle_chuer():
+    print("正在处理初二的成绩")
+    dir_name = "初二成绩"
+    excel_path = find_the_excel(dir_name)
     print(excel_path)
-    class_info_dict, averages, hegelvs, chafenlvs, youfenlvs = classify_with_class(excel_path)
-    write_to_another_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs)
-    # read_teacher_name()
+    result_file = "GradeTworesult.xls"
+    class_info_dict, averages, hegelvs, chafenlvs, youfenlvs = classify_with_class(excel_path, result_file=result_file)
+    write_to_grade_two_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file=result_file,
+                             dir_name=dir_name)
+
+
+def handle_chuyi():
+    print("正在处理初一的成绩")
+    dir_name = "初一成绩"
+    excel_path = find_the_excel(dir_name)
+    print(excel_path)
+    result_file = "GradeOneresult.xls"
+    class_info_dict, averages, hegelvs, chafenlvs, youfenlvs = classify_with_class(excel_path, result_file=result_file)
+    write_to_grade_one_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file=result_file,
+                             dir_name=dir_name)
+
+
+def handle_chusan():
+    print("正在处理初三的成绩")
+    dir_name = "初三成绩"
+    excel_path = find_the_excel(dir_name)
+    print(excel_path)
+    result_file = "GradeThreeresult.xls"
+    class_info_dict, averages, hegelvs, chafenlvs, youfenlvs = classify_with_class(excel_path, result_file=result_file)
+    write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file=result_file,
+                               dir_name=dir_name)
+
+
+if __name__ == '__main__':
+    if os.path.exists("初一成绩"):
+        handle_chuyi()
+
+    if os.path.exists("初二成绩"):
+        handle_chuer()
+
+    if os.path.exists("初三成绩"):
+        handle_chusan()
