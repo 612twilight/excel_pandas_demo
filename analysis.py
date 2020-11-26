@@ -164,7 +164,9 @@ def write_to_grade_one_excel(class_info_dict, averages, hegelvs, chafenlvs, youf
     year = datetime.datetime.now().year
     month = datetime.datetime.now().month
     day = datetime.datetime.now().day
-    xueqi = "一" if month <= 9 else "二"
+
+    xueqi = "一" if 3 > month or month > 9 else "二"
+    year = year if 3 > month or month > 9 else year - 1
     title = "{}-{}学年度第{}学期初一年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
 
     blocks = ['语文', '数学', '英语', '政治']
@@ -178,7 +180,7 @@ def write_to_grade_one_excel(class_info_dict, averages, hegelvs, chafenlvs, youf
     blocks = ['历史', '地理', '地理', '生物', '总分']
     first_colmns = ['历 史 (60)', '地 理 (50)', '生 物 (50)', '总 分 (520)']
     block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
-                       youfenlvs, teachers, class_prefix="八")
+                       youfenlvs, teachers, class_prefix="七")
     workbook.save(result_file)
 
 
@@ -232,7 +234,7 @@ def write_to_grade_two_excel(class_info_dict, averages, hegelvs, chafenlvs, youf
 
 
 def write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, youfenlvs, result_file="result.xls",
-                               dir_name="初二成绩"):
+                               dir_name="初三成绩"):
     teachers = read_teacher_name(dir_name)
     data = xlrd.open_workbook(result_file)
     workbook = copy(wb=data)  # 完成xlrd对象向xlwt对象转换
@@ -271,7 +273,7 @@ def write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, yo
     begin_row = 2
 
     block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
-                       youfenlvs, teachers, class_prefix="八")
+                       youfenlvs, teachers, class_prefix="九")
     begin_row = begin_row + len(class_info_dict) + 3
     blocks = ['化学', '政治', '历史', '总分']
     first_colmns = ['化 学 (80)', '政 治 (60)', '历 史 (60)', '总 分 (600)']
@@ -354,7 +356,7 @@ def block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_
                     try:
                         tmp = block if block != "总分" else "班主任"
                         sheet.write(row_num, col_num, teachers[tmp][class_prefix + str(class_name)], juzhong_style)
-                    except:
+                    except Exception as e:
                         continue
 
     junfen_row = begin_row + len(class_info_dict) + 1
@@ -414,3 +416,16 @@ if __name__ == '__main__':
 
     if os.path.exists("初三成绩"):
         handle_chusan()
+
+    # import time
+    #
+    # wait_time = 5
+    # print("程序将于{}秒后退出".format(wait_time))
+    # time.sleep(wait_time)
+    import msvcrt
+
+    print("按任意键退出。。。。")
+
+    while True:
+        if msvcrt.getch():
+            break
