@@ -215,7 +215,9 @@ def write_to_grade_two_excel(class_info_dict, averages, hegelvs, chafenlvs, youf
     year = datetime.datetime.now().year
     month = datetime.datetime.now().month
     day = datetime.datetime.now().day
-    xueqi = "一" if month <= 9 else "二"
+
+    xueqi = "一" if 3 > month or month > 9 else "二"
+    year = year if 3 > month or month > 9 else year - 1
     title = "{}-{}学年度第{}学期初二年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
 
     blocks = ['语文', '数学', '英语', '物理']
@@ -264,11 +266,13 @@ def write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, yo
     year = datetime.datetime.now().year
     month = datetime.datetime.now().month
     day = datetime.datetime.now().day
-    xueqi = "一" if month <= 9 else "二"
+
+    xueqi = "一" if 3 > month or month > 9 else "二"
+    year = year if 3 > month or month > 9 else year - 1
     title = "{}-{}学年度第{}学期初三年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
 
     blocks = ['语文', '数学', '英语', '物理']
-    first_colmns = ['语 文 (100)', '数 学 (100)', '英 语 (100)', '物 理 (100)']
+    first_colmns = ['语 文 (120)', '数 学 (120)', '英 语 (120)', '物 理 (100)']
     sheet.write_merge(0, 0, 0, len(blocks) * len(cols) + 1, title, class_style)  # Merges row 0's columns 0 through 3
     begin_row = 2
 
@@ -276,7 +280,7 @@ def write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, yo
                        youfenlvs, teachers, class_prefix="九")
     begin_row = begin_row + len(class_info_dict) + 3
     blocks = ['化学', '政治', '历史', '总分']
-    first_colmns = ['化 学 (80)', '政 治 (60)', '历 史 (60)', '总 分 (600)']
+    first_colmns = ['化 学 (80)', '政 治 (60)', '历 史 (60)', '总 分 (660)']
     block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_dict, averages, hegelvs, chafenlvs,
                        youfenlvs, teachers, class_prefix="九")
     workbook.save(result_file)
@@ -377,6 +381,7 @@ def block_writer_utils(blocks, first_colmns, cols, sheet, begin_row, class_info_
 def handle_chuer():
     print("正在处理初二的成绩")
     dir_name = "初二成绩"
+    subjects_manfen.update({"语文": 100, "数学": 100, "英语": 100})
     excel_path = find_the_excel(dir_name)
     print(excel_path)
     result_file = "GradeTworesult.xls"
@@ -387,6 +392,7 @@ def handle_chuer():
 
 def handle_chuyi():
     print("正在处理初一的成绩")
+    subjects_manfen.update({"语文": 100, "数学": 100, "英语": 100})
     dir_name = "初一成绩"
     excel_path = find_the_excel(dir_name)
     print(excel_path)
@@ -399,6 +405,7 @@ def handle_chuyi():
 def handle_chusan():
     print("正在处理初三的成绩")
     dir_name = "初三成绩"
+    subjects_manfen.update({"语文": 120, "数学": 120, "英语": 120})
     excel_path = find_the_excel(dir_name)
     print(excel_path)
     result_file = "GradeThreeresult.xls"
