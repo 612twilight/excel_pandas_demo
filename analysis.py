@@ -165,8 +165,8 @@ def write_to_grade_one_excel(class_info_dict, averages, hegelvs, chafenlvs, youf
     month = datetime.datetime.now().month
     day = datetime.datetime.now().day
 
-    xueqi = "一" if 3 > month or month > 9 else "二"
-    year = year if 3 > month or month > 9 else year - 1
+    xueqi = "一" if 3 > month or month > 8 else "二"
+    year = year if 3 > month or month > 8 else year - 1
     title = "{}-{}学年度第{}学期初一年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
 
     blocks = ['语文', '数学', '英语', '政治']
@@ -216,8 +216,8 @@ def write_to_grade_two_excel(class_info_dict, averages, hegelvs, chafenlvs, youf
     month = datetime.datetime.now().month
     day = datetime.datetime.now().day
 
-    xueqi = "一" if 3 > month or month > 9 else "二"
-    year = year if 3 > month or month > 9 else year - 1
+    xueqi = "一" if 3 > month or month > 8 else "二"
+    year = year if 3 > month or month > 8 else year - 1
     title = "{}-{}学年度第{}学期初二年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
 
     blocks = ['语文', '数学', '英语', '物理']
@@ -267,8 +267,8 @@ def write_to_grade_three_excel(class_info_dict, averages, hegelvs, chafenlvs, yo
     month = datetime.datetime.now().month
     day = datetime.datetime.now().day
 
-    xueqi = "一" if 3 > month or month > 9 else "二"
-    year = year if 3 > month or month > 9 else year - 1
+    xueqi = "一" if 3 > month or month > 8 else "二"
+    year = year if 3 > month or month > 8 else year - 1
     title = "{}-{}学年度第{}学期初三年级期末调研质量分析   {}.{}月".format(year, year + 1, xueqi, year, month)
 
     blocks = ['语文', '数学', '英语', '物理']
